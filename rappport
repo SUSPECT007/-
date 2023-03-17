@@ -1,0 +1,131 @@
+Rapports sur les projets
+Description du projet:
+Ce projet nécessite l'écriture d'un synchroniseur de fichiers capable de
+synchroniser deux systèmes de fichiers sur la même machine. Le but du
+synchroniseur est de se rapprocher le plus possible du même état de l'arborescence
+A et de l'arborescence B, même si chaque fichier sur A et B existe et a les mêmes
+données et métadonnées. Le synchroniseur parcourt les deux arborescences de
+fichiers et compare leurs fichiers pour déterminer s'ils doivent être synchronisés. Analyse technique:
+La conception de ce synchroniseur implique les étapes suivantes:
+1. Parcourez deux arborescences de fichiers et comparez les métadonnées (type, autorisation, taille, dernière date de modification) et le contenu du fichier de chaque
+fichier. 2. Pour chaque fichier, il y a conflit si le type de fichier est différent. 3. Pour chaque répertoire, descendez récursivement dans les sous-répertoires et
+continuez à comparer les fichiers. 4. Si les métadonnées et le contenu des deux fichiers sont les mêmes, aucune action
+n'est nécessaire et la synchronisation réussit. 5. Si l'un des fichiers est identique aux métadonnées du fichier journal, les
+métadonnées de l'autre fichier sont copiées dans le premier fichier et le résultat de
+la synchronisation est stocké dans le fichier journal. 6. Si les métadonnées des deux fichiers sont différentes, un conflit se produit et le
+synchroniseur doit afficher la liste des conflits à l'utilisateur et peut fournir une
+solution, telle que le démarrage d'un outil de calcul des différences. 7. Enfin, les données de tous les fichiers synchronisés avec succès seront réécrites
+dans le fichier journal. Processus techniques:
+1. Traitement des paramètres d'entrée ou spécification directe du code du
+répertoire de synchronisation
+Comprend le répertoire source, le répertoire de destination et le chemin du
+fichier journal
+Vérifier la légalité des paramètres, tels que l'existence du répertoire entré, etc. 2. Créer ou lire un fichier journal
+Si le fichier journal existe, lire les enregistrements de synchronisation dans le
+fichier journal
+3. Parcourir les répertoires source et destination
+Parcourez les répertoires source et cible en parallèle et effectuez les opérations
+suivantes pour chaque fichier:
+Si le fichier est un répertoire:
+Si le répertoire existe à la fois dans le répertoire source et le répertoire cible,
+il descend récursivement dans le répertoire pour une opération de
+synchronisation
+Si le répertoire n'existe que dans le répertoire source, créez le répertoire
+dans le répertoire cible
+Si le répertoire n'existe que dans le répertoire cible, créez le répertoire dans
+le répertoire source
+Si les répertoires existent dans les répertoires source et destination mais l'un
+est un fichier et l'autre est un répertoire, un conflit est considéré
+Si le fichier est un fichier ordinaire:
+Si le fichier existe dans les répertoires source et cible, comparez les
+métadonnées du fichier (type, autorisation, taille et date de dernière
+modification). Si les métadonnées sont cohérentes, la synchronisation est
+considérée comme réussie et aucune opération n'est requise; Sinon, jugez quel
+fichier doit être copié vers un autre en fonction du fichier journal
+Si le fichier n'existe que dans le répertoire source, créez le fichier dans le
+répertoire cible et copiez son contenu
+Si le fichier n'existe que dans le répertoire cible, créez le fichier dans le
+répertoire source et copiez son contenu
+Si les fichiers existent dans les répertoires source et destination mais que
+l'un est un répertoire et l'autre est un fichier, un conflit est considéré
+Si le fichier existe dans les répertoires source et destination mais que le
+contenu du fichier est différent, déterminez quel fichier doit être copié vers un
+autre en fonction du fichier journal
+Enregistrer les fichiers synchronisés avec succès pendant la traversée
+4. Écrire dans le fichier journal
+Écrire les enregistrements de fichiers synchronisés avec succès dans le fichier
+journal
+5. Gestion des conflits
+Si les métadonnées du fichier du même nom sont incohérentes, un conflit est
+considéré comme se produisant et doit être traité
+Liste des conflits de sortie, l'utilisateur choisit comment résoudre le conflit
+6. Clôture de la procédure
+Résultat de la synchronisation de sortie
+Quitter le programme
+Interprétation du code:
+La fonction walk_dir() prend le chemin du répertoire en entrée et utilise la
+commande find pour lister tous les fichiers et répertoires de ce répertoire. L'option
+printf est utilisée pour imprimer le chemin de chaque fichier ou répertoire, en
+commençant par un slash pour faciliter la connexion au chemin du répertoire plus
+tard.
+La fonction reset() prend le chemin du fichier en entrée et remplace le contenu du
+fichier avec une chaîne vide. Utilisé pour effacer les fichiers journaux avant
+d'exécuter le script. La fonction initialize_log() vérifie si le fichier journal existe, sinon elle appelle reset(). La fonction get_information() prend trois arguments: le chemin du répertoire source
+($1), le chemin du répertoire cible ($2) et le nom du fichier ou du répertoire ($3). Utilise la commande stat pour obtenir l'heure de modification du fichier ou du
+répertoire, et la commande ls pour obtenir la taille du fichier et les autorisations. La
+sortie est formatée sous la forme d'une chaîne séparée par des tabulations
+contenant l'heure de modification, le type de fichier (d pour un répertoire, -pour un
+fichier normal), les autorisations, la taille et le chemin d'accès aux fichiers ou
+répertoires dans les répertoires source et cible. La fonction update_log() prend trois arguments: le chemin du répertoire source ($1),
+le chemin du répertoire cible ($2) et le nom du fichier ou du répertoire ($3). Supprime toutes les lignes du fichier journal contenant le chemin du fichier source ou
+du répertoire, puis utilise find pour obtenir le chemin de tous les fichiers et
+répertoires du répertoire source et appelle get_information() pour joindre leurs
+métadonnées au fichier journal. La fonction get_log() prend deux arguments: le chemin vers le répertoire ($1) et le
+nom du fichier ou du répertoire ($2). Recherche dans le fichier journal les lignes
+contenant le chemin du fichier source ou du répertoire et affiche les métadonnées
+de ces lignes. La fonction get_mtime() prend le chemin du fichier en entrée et utilise la commande
+stat pour obtenir le temps de modification (en secondes) du fichier depuis l'ère Unix. La fonction get_metadata() accepte trois arguments: le chemin du répertoire source
+($1), le chemin du répertoire cible ($2) et le nom du fichier ou du répertoire ($3). Appelle get_information () pour obtenir les métadonnées du fichier ou du répertoire
+et imprimer l'heure de modification, le type de fichier, les autorisations et la taille. Get_file_authority() {get_information $1 $2 $3 awk’{print $2,$3}’} Définit une
+fonction pour obtenir les permissions sur un fichier spécifique dans un
+répertoire.Trois paramètres sont acceptés, $1 comme chemin de répertoire, $2
+comme chemin de répertoire de journal et $3 comme nom de fichier. Utilisez awk
+pour obtenir les deuxième et troisième colonnes de la sortie de get_information. Get_log_authority() {grep $1 $2 $Log awk’{print $2, $3} ‘} Définit une fonction pour
+obtenir les permissions de log pour un fichier particulier dans un répertoire. Deux
+paramètres sont acceptés, $1 comme chemin de répertoire et $2 comme nom de
+fichier. Utilisez awk pour obtenir les colonnes 2 et 3 de la sortie de grep sur le fichier
+journal. Handle_conflict() définit une fonction pour gérer les conflits lorsque des fichiers du
+même nom existent dans les répertoires A et B. Trois paramètres sont utilisés, $1
+comme chemin vers le répertoire A, $2 comme chemin vers le répertoire B et $3
+comme nom de fichier. Affiche les options que l'utilisateur peut sélectionner et effectue des actions en
+fonction des entrées de l'utilisateur. Copy_with_metainfo() définit une fonction qui copie un fichier d'un répertoire à un
+autre avec des méta-informations. Trois paramètres sont acceptés, $1 comme
+chemin du répertoire source, $2 comme chemin du répertoire cible et $3 comme
+nom de fichier. Copiez le fichier et mettez à jour le journal. La fonction compare_file() permet de comparer des fichiers dans deux
+répertoires. Elle prend deux paramètres: Le chemin des deux répertoires à comparer. Cette fonction utilise une boucle while pour lire chaque ligne (c'est-à-dire chaque
+fichier) dans le répertoire spécifié par le premier paramètre. Pour chaque fichier, la
+fonction utilise l'option -e et l'instruction if pour vérifier si le fichier correspondant
+existe dans le répertoire spécifié par le deuxième paramètre. Si les fichiers existent dans deux répertoires, la fonction utilise l'option -f et
+l'instruction If pour vérifier si les deux fichiers sont des fichiers normaux. Si c'est le
+cas, la fonction utilise les fonctions get_metadata et get_log pour comparer les
+métadonnées des deux fichiers avec le journal. Si les métadonnées des deux fichiers
+correspondent au journal, cela signifie que le fichier n'a pas été modifié et la fonction
+affichera un message. Si les métadonnées des deux fichiers ne correspondent pas au journal, utilisez la
+fonction get_mtime pour vérifier si mtime (temps de modification) des deux fichiers
+est le même. Si le mtime des deux fichiers n'est pas cohérent, la fonction utilise la
+fonction copy_with_metainfo pour copier le dernier fichier de mtime d'un répertoire
+à l'autre. Si le mtime des deux fichiers est le même, mais que les métadonnées sont
+différentes, vérifiez que les autorisations du fichier ont été modifiées. Fait cela en
+comparant la sortie de la fonction get_file_authority avec la fonction
+get_log_authority. Si les permissions d'un fichier ont changé, la fonction
+copy_with_metainfo utilise la fonction copy_with_metainfo pour copier le fichier
+dans un autre répertoire. Si le fichier existe dans les deux répertoires, mais n'est pas un fichier normal, la
+fonction affiche un message d'erreur. Si le fichier a un contenu différent, la fonction
+affiche un message d'erreur indiquant qu'il y a un conflit. Si le contenu des deux
+fichiers est le même, mais que les métadonnées sont différentes, la fonction vérifie si
+les permissions de l'un des fichiers ont été modifiées et copie le fichier dans un autre
+répertoire si nécessaire.
+En cas de conflit, la fonction handle_conflict est appelée pour gérer le conflit, permettant à l'utilisateur de choisir quel fichier conserver, quel fichier supprimer, ou
+les deux en même temps. Enfin, le script appelle la fonction initialize_log, affiche le journal du répertoire A, traverse le répertoire A, puis appelle la fonction compare_file, qui utilise le journal du
+répertoire A pour comparer les fichiers du répertoire A avec les fichiers
+correspondants du répertoire B. Le script imprime ensuite le journal du répertoire B
